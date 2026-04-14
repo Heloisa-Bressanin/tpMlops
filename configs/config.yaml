@@ -1,0 +1,39 @@
+# NYC Taxi Trip Duration - Configuration
+
+# Data paths
+data:
+   processed_path: "data/processed"
+   train_file: "train_processed.csv"
+   test_file: "test_processed.csv"
+
+# Preprocessing parameters
+preprocessing:
+   test_size: 0.2
+   random_state: 42
+   drop_columns:
+      - "id"
+
+# Model parameters
+training:
+   algorithm: "random_forest"
+   random_state: 42
+   n_estimators: 100
+   max_depth: 20
+   min_samples_split: 5
+   min_samples_leaf: 2
+
+# Feature engineering
+features:
+   date_features:
+      - "year"
+      - "month"
+      - "day"
+      - "hour"
+      - "minute"
+      - "day_of_week"
+
+   location_features:
+      - "pickup_latitude"
+      - "pickup_longitude"
+      - "dropoff_latitude"
+      - "dropoff_longitude"

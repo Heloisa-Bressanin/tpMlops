@@ -1,0 +1,46 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Data (garder les données prétraitées)
+data/raw/*.csv
+
+# Models
+models/*.pkl
+models/*.joblib
+
+# OS
+.DS_Store
+.env
+*.log
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Config
+configs/*.local.yaml
