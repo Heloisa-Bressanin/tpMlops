@@ -14,6 +14,10 @@ preprocessing:
       - "id"
 
 # Model parameters
+model:
+   model_dir: "models"
+   model_name: "taxi_model.pkl"
+
 training:
    algorithm: "random_forest"
    random_state: 42

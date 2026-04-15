@@ -44,3 +44,7 @@ htmlcov/
 
 # Config
 configs/*.local.yaml
+data/processed/*.csv
+data/predictions/*.csv
+predictions.db
+api/predictions.db

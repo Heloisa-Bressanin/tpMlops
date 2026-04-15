@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import joblib
+import json
 import yaml
 from typing import Tuple, Dict, Any
 
@@ -23,6 +24,7 @@ class ModelTrainer:
         self.processed_path = Path(self.config["data"]["processed_path"])
         self.model_dir = Path(self.config["model"]["model_dir"])
         self.model = None
+        self.feature_columns = None  # Store feature column names and order
         
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from YAML file."""
@@ -39,30 +41,49 @@ class ModelTrainer:
         """Prepare features and target for training."""
         df = df.copy()
         
+        # Convert numeric columns to float explicitly to avoid type mismatches
+        for col in df.columns:
+            if col not in ["pickup_datetime", "trip_duration", "id"]:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
         # Columns to drop (include datetime columns)
         drop_cols = self.config["preprocessing"]["drop_columns"] + ["pickup_datetime"]
         drop_cols = [col for col in drop_cols if col in df.columns]
         
-        # Also drop datetime-related objects
+        # Also drop datetime-related objects and non-numeric columns
         for col in df.columns:
             if df[col].dtype == "object":
                 drop_cols.append(col)
         
         drop_cols = list(set(drop_cols))  # Remove duplicates
         
-        # Select features - only numeric columns
-        feature_cols = [col for col in df.columns 
-                       if col not in drop_cols and col != "trip_duration" and df[col].dtype != "object"]
+        # Select features - only numeric, non-empty columns
+        feature_cols = [col for col in df.columns
+                       if col not in drop_cols and col != "trip_duration"
+                       and df[col].dtype != "object"
+                       and df[col].notna().any()]  # drop fully-NaN columns
+
+        # Sort features to ensure consistent ordering
+        feature_cols = sorted(feature_cols)
         
         X = df[feature_cols].astype(float)
         
         if is_train:
+            # Store feature columns for later use in predictions
+            self.feature_columns = feature_cols
             y = df["trip_duration"]
             print(f"Features shape: {X.shape}")
             print(f"Target shape: {y.shape}")
+            print(f"Feature columns: {feature_cols}")
             return X, y
         else:
             print(f"Features shape: {X.shape}")
+            # Reorder columns to match training data
+            if self.feature_columns is not None:
+                print(f"Reordering columns from {list(X.columns)} to {self.feature_columns}")
+                X = X[self.feature_columns]
+            else:
+                print(f"⚠️  feature_columns not set, keeping original order: {list(X.columns)}")
             return X, None
     
     def train(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
@@ -121,8 +142,16 @@ class ModelTrainer:
         model_path = self.model_dir / model_name
         self.model_dir.mkdir(parents=True, exist_ok=True)
         
+        # Save model
         joblib.dump(self.model, model_path)
         print(f"Model saved to {model_path}")
+        
+        # Also save feature columns metadata
+        metadata_path = self.model_dir / "model_metadata.json"
+        metadata = {"feature_columns": self.feature_columns}
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f)
+        print(f"Model metadata saved to {metadata_path}")
     
     def load_model(self, model_name: str = None):
         """Load trained model from disk."""
@@ -132,12 +161,30 @@ class ModelTrainer:
         model_path = self.model_dir / model_name
         self.model = joblib.load(model_path)
         print(f"Model loaded from {model_path}")
+        
+        # Also try to load feature columns metadata
+        metadata_path = self.model_dir / "model_metadata.json"
+        print(f"Looking for metadata at: {metadata_path} (exists: {metadata_path.exists()})")
+        if metadata_path.exists():
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+                self.feature_columns = metadata.get("feature_columns")
+            print(f"✓ Model metadata loaded ({len(self.feature_columns)} features)")
+        else:
+            print(f"⚠️  Metadata not found at {metadata_path}")
+        
         return self.model
     
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         """Make predictions with the trained model."""
         if self.model is None:
             raise ValueError("No model loaded. Train or load a model first.")
+        
+        # Ensure columns are in the correct order
+        if self.feature_columns is not None and isinstance(X, pd.DataFrame):
+            X = X[self.feature_columns]
+            # Convert to numpy array to avoid sklearn column name issues
+            X = X.values
         
         return self.model.predict(X)
 

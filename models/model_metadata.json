@@ -1,0 +1,1 @@
+{"feature_columns": ["day", "day_of_week", "direction_ew", "direction_ns", "distance", "dropoff_latitude", "dropoff_longitude", "hour", "manhattan_distance", "minute", "month", "passenger_count", "pickup_latitude", "pickup_longitude", "vendor_id", "year"]}

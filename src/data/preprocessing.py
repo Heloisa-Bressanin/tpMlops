@@ -16,7 +16,7 @@ class DataPreprocessor:
     def __init__(self, config_path: str = "configs/config.yaml"):
         """Initialize preprocessor with configuration."""
         self.config = self._load_config(config_path)
-        self.raw_path = Path(self.config["data"]["raw_path"])
+        self.raw_path = Path(self.config["data"].get("raw_path", "data/raw"))  # Optional fallback
         self.processed_path = Path(self.config["data"]["processed_path"])
         
     def _load_config(self, config_path: str) -> dict:

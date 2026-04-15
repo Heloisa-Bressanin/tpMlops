@@ -39,14 +39,21 @@ class TaxiDurationPredictor:
         """
         if self.model is None:
             raise ValueError("Model not loaded. Call load_model() first.")
-        
+
         # Preprocess
         processed_data = self.preprocessor.extract_datetime_features(data)
         processed_data = self.preprocessor.engineer_features(processed_data)
-        
+
+        # Add columns that were present during training but are not generated
+        # by the preprocessing pipeline (they were NaN at training time too).
+        expected_features = self.trainer.feature_columns or []
+        for col in expected_features:
+            if col not in processed_data.columns:
+                processed_data[col] = np.nan
+
         # Prepare features
         X, _ = self.trainer.prepare_features(processed_data, is_train=False)
-        
+
         # Predict
         predictions = self.trainer.predict(X)
         return predictions
